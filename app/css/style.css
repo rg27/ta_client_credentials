@@ -7,14 +7,6 @@ body {
     padding-top: 20px;
     margin: 0;
 }
-.card {
-    width: 350px;
-    background: white;
-    border: 1px solid #ddecfa;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
-}
 .table-card {
     width: 90%;
     max-width: 800px;
@@ -26,12 +18,6 @@ body {
     color: #444;
     border-bottom: 1px solid #ddecfa;
     font-size: 14px;
-}
-.content {
-    padding: 15px;
-}
-.data-row {
-    margin-bottom: 15px;
 }
 .label {
     display: block;
@@ -68,23 +54,4 @@ body {
     font-size: 13px;
     color: #333;
     border-bottom: 1px solid #f4f7f9;
-}
-.status-msg {
-    text-align: center;
-    color: #666;
-    font-style: italic;
-}
-.pass-code {
-    background: #f1f1f1;
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-family: monospace;
-}
-.login-link {
-    color: #007bff;
-    text-decoration: none;
-    font-weight: bold;
-}
-.login-link:hover {
-    text-decoration: underline;
 }
