@@ -136,10 +136,12 @@ async function loadCredentials(isInitialLoad = false) {
             });
             lucide.createIcons();
         } else {
+            allCredentialsData = [];
             tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-10 text-center text-slate-400 font-medium italic">No Available Data</td></tr>`;
         }
     } catch (e) { 
         console.error("Load Credentials Error:", e);
+        allCredentialsData = [];
         tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-10 text-center text-slate-400 font-medium italic">No Available Data</td></tr>`;
     }
 }
@@ -207,7 +209,7 @@ window.deleteCredential = async (id) => {
         const deletedRecord = allCredentialsData.find(item => item.ID === id);
         const payload = { 
             "credential_id": id, "account_id": currentAccountID, "Created_Updated": senderName,
-            "credential_type": deletedRecord?.Credential_Type, "login_username": deletedRecord?.Username, "login_pass": deletedRecord?.Login_Pass1
+            "credential_type": deletedRecord?.Credential_Type, "login_username": deletedRecord?.Username, "login_pass": deletedRecord?.Login_Pass1, "notes": deletedRecord?.Notes
         };
         console.log("Execute ta_delete_credential_zc_api Payload:", payload);
         await ZOHO.CRM.FUNCTIONS.execute("ta_delete_credential_zc_api", { "arguments": JSON.stringify(payload) });
@@ -276,12 +278,38 @@ window.initEditModal = (data) => {
 };
 
 window.closeModal = () => document.getElementById('modal-backdrop').classList.add('hidden');
-window.openNotifyModal = () => {
+
+window.openNotifyModal = async () => {
+    const hasCredentials = allCredentialsData.length > 0;
     const sel = document.querySelectorAll('.credential-checkbox:checked').length;
-    if (sel === 0) return showAlert({ title: "Selection Required", message: "Select items.", type: "info" });
+    console.log("openNotifyModal — hasCredentials:", hasCredentials, "| selected:", sel);
+
+    if (!hasCredentials) {
+        // No credentials on the account — open modal directly so they can still send an email
+        console.log("openNotifyModal — No credentials found, opening modal directly.");
+        document.getElementById('selected-count').innerText = 0;
+        document.getElementById('notify-modal').classList.remove('hidden');
+        return;
+    }
+
+    if (sel === 0) {
+        // Has credentials but none ticked — warn, offer to proceed anyway
+        console.log("openNotifyModal — Credentials exist but none selected, prompting user.");
+        const proceed = await showAlert({
+            title: "No Credentials Selected",
+            message: "You haven't selected any credentials. Do you still want to notify the client? (e.g. the client will provide new credentials themselves)",
+            type: "info",
+            confirmText: "Proceed Anyway",
+            showCancel: true
+        });
+        console.log("openNotifyModal — User chose to proceed:", proceed);
+        if (!proceed) return;
+    }
+
     document.getElementById('selected-count').innerText = sel;
     document.getElementById('notify-modal').classList.remove('hidden');
 };
+
 window.closeNotifyModal = () => document.getElementById('notify-modal').classList.add('hidden');
 window.toggleSelectAll = (s) => document.querySelectorAll('.credential-checkbox').forEach(c => c.checked = s.checked);
 window.toggleRow = (idx, u, p) => {
