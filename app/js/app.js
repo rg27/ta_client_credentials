@@ -234,11 +234,11 @@ window.processNotification = async () => {
     try {
         let senderName = "System User";
         const userRes = await ZOHO.CRM.CONFIG.getCurrentUser();
-        if (userRes?.users?.length > 0) senderName = userRes.users[0].full_name;
+        if (userRes?.users?.length > 0) senderName = userRes.users[0].full_name; senderEmail = userRes.users[0].email;
         const selectedCredentials = allCredentialsData.filter(item => selectedIds.includes(item.ID));
         const payload = { 
             "client_email": email, "account_id": currentAccountID, "Created_Updated": senderName,
-            "selected_credentials": selectedCredentials 
+            "selected_credentials": selectedCredentials, "Created_Updated_Email": senderEmail
         };
         console.log("Execute ta_notify_bulk_update_api Payload:", payload);
         const response = await ZOHO.CRM.FUNCTIONS.execute("ta_notify_bulk_update_api", { "arguments": JSON.stringify(payload) });
