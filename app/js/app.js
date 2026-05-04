@@ -78,6 +78,7 @@ const uncheckAllCredentials = () => {
 
 ZOHO.embeddedApp.on("PageLoad", async (entity) => {
     currentAccountID = Array.isArray(entity.EntityId) ? entity.EntityId[0] : entity.EntityId;
+    console.log("PageLoad Event Triggered with Entity:", entity);
     console.log("App Loaded for Account ID:", currentAccountID);
     await loadCredentials(true);
 });
