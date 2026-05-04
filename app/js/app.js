@@ -11,9 +11,7 @@ const triggerLog = async (action, recordData) => {
             "affected_record": recordData 
         };
         const args = { "arguments": JSON.stringify(payload) };
-        console.log("Execute ta_create_logs Payload:", payload);
         const logRes = await ZOHO.CRM.FUNCTIONS.execute("ta_create_logs", args);
-        console.log("Execute ta_create_logs Result:", logRes);
     } catch (err) {
         console.error("Logging Error:", err);
     }
@@ -73,15 +71,36 @@ const setButtonState = (btn, isBusy, originalText) => {
 const uncheckAllCredentials = () => {
     const checkboxes = document.querySelectorAll('.credential-checkbox');
     checkboxes.forEach(cb => cb.checked = false);
-    console.log("All credential checkboxes unchecked.");
 };
 
+// --- CRITICAL UPDATE START ---
 ZOHO.embeddedApp.on("PageLoad", async (entity) => {
     currentAccountID = Array.isArray(entity.EntityId) ? entity.EntityId[0] : entity.EntityId;
-    console.log("PageLoad Event Triggered with Entity:", entity);
-    console.log("App Loaded for Account ID:", currentAccountID);
-    await loadCredentials(true);
+    
+    try {
+        const userRes = await ZOHO.CRM.CONFIG.getCurrentUser();
+        const userProfile = userRes?.users?.[0]?.profile?.name;
+
+        // TARGET THE ENTIRE UI WRAPPER
+        const mainWrapper = document.getElementById("main-wrapper");
+
+        if (userProfile === "Administrator") {
+            // Only load credentials and keep the UI if the user is an Admin
+            await loadCredentials(true);
+        } else {
+            // Completely wipe the UI and replace with a simple message for everyone else
+            mainWrapper.innerHTML = `
+                <div class="flex items-center justify-center min-h-[400px] w-full">
+                    <div class="text-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        <p class="text-slate-400 italic text-sm font-medium">Not Available</p>
+                    </div>
+                </div>`;
+        }
+    } catch (error) {
+        console.error("Initialization Error:", error);
+    }
 });
+// --- CRITICAL UPDATE END ---
 
 async function loadCredentials(isInitialLoad = false) {
     const tableBody = document.getElementById("credential-body");
@@ -91,9 +110,7 @@ async function loadCredentials(isInitialLoad = false) {
     try {
         const payload = { "account_id": currentAccountID };
         const args = { "arguments": JSON.stringify(payload) };
-        console.log("Execute ta_get_client_credentials_zc_api Payload:", payload);
         const response = await ZOHO.CRM.FUNCTIONS.execute("ta_get_client_credentials_zc_api", args);
-        console.log("Execute ta_get_client_credentials_zc_api Result:", response);
         const result = JSON.parse(response.details.output);
 
         if (result.code === 3000 && result.data && result.data.length > 0) {
@@ -141,7 +158,6 @@ async function loadCredentials(isInitialLoad = false) {
             tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-10 text-center text-slate-400 font-medium italic">No Available Data</td></tr>`;
         }
     } catch (e) { 
-        console.error("Load Credentials Error:", e);
         allCredentialsData = [];
         tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-10 text-center text-slate-400 font-medium italic">No Available Data</td></tr>`;
     }
@@ -175,14 +191,12 @@ document.getElementById('credential-form').onsubmit = async (e) => {
             "account_id": currentAccountID
         };
         const args = { "arguments": JSON.stringify(payload) };
-        console.log("Execute ta_upsert_credential_zc_api Payload:", payload);
         await ZOHO.CRM.FUNCTIONS.execute("ta_upsert_credential_zc_api", args);
         closeModal();
         triggerLog(isEdit ? "UPDATE" : "CREATE", payload);
         await loadCredentials();
         showAlert({ title: "Success", message: isEdit ? "Credential updated." : "Credential created.", type: "success" });
     } catch (err) { 
-        console.error("Upsert Error:", err);
         showAlert({ title: "Error", message: "Action failed.", type: "danger" }); 
     } finally {
         setButtonState(submitBtn, false, originalText);
@@ -212,12 +226,10 @@ window.deleteCredential = async (id) => {
             "credential_id": id, "account_id": currentAccountID, "Created_Updated": senderName,
             "credential_type": deletedRecord?.Credential_Type, "login_username": deletedRecord?.Username, "login_pass": deletedRecord?.Login_Pass1, "notes": deletedRecord?.Notes
         };
-        console.log("Execute ta_delete_credential_zc_api Payload:", payload);
         await ZOHO.CRM.FUNCTIONS.execute("ta_delete_credential_zc_api", { "arguments": JSON.stringify(payload) });
         await loadCredentials();
         triggerLog("DELETE", payload);
     } catch (err) {
-        console.error("Delete Error:", err);
         showAlert({ title: "Error", message: "Deletion failed.", type: "danger" });
     } finally {
         setButtonState(btn, false, originalContent);
@@ -234,14 +246,17 @@ window.processNotification = async () => {
     setButtonState(btn, true, originalText);
     try {
         let senderName = "System User";
+        let senderEmail = "";
         const userRes = await ZOHO.CRM.CONFIG.getCurrentUser();
-        if (userRes?.users?.length > 0) senderName = userRes.users[0].full_name; senderEmail = userRes.users[0].email;
+        if (userRes?.users?.length > 0) {
+            senderName = userRes.users[0].full_name; 
+            senderEmail = userRes.users[0].email;
+        }
         const selectedCredentials = allCredentialsData.filter(item => selectedIds.includes(item.ID));
         const payload = { 
             "client_email": email, "account_id": currentAccountID, "Created_Updated": senderName,
             "selected_credentials": selectedCredentials, "Created_Updated_Email": senderEmail
         };
-        console.log("Execute ta_notify_bulk_update_api Payload:", payload);
         const response = await ZOHO.CRM.FUNCTIONS.execute("ta_notify_bulk_update_api", { "arguments": JSON.stringify(payload) });
         const outputObj = JSON.parse(response.details.output);
         if (outputObj.value === "existing pending request") {
@@ -253,7 +268,6 @@ window.processNotification = async () => {
         }
         closeNotifyModal();
     } catch (err) {
-        console.error("Notification Error:", err);
         showAlert({ title: "Error", message: "Notify failed.", type: "danger" });
     } finally {
         setButtonState(btn, false, originalText);
@@ -283,27 +297,21 @@ window.closeModal = () => document.getElementById('modal-backdrop').classList.ad
 window.openNotifyModal = async () => {
     const hasCredentials = allCredentialsData.length > 0;
     const sel = document.querySelectorAll('.credential-checkbox:checked').length;
-    console.log("openNotifyModal — hasCredentials:", hasCredentials, "| selected:", sel);
 
     if (!hasCredentials) {
-        // No credentials on the account — open modal directly so they can still send an email
-        console.log("openNotifyModal — No credentials found, opening modal directly.");
         document.getElementById('selected-count').innerText = 0;
         document.getElementById('notify-modal').classList.remove('hidden');
         return;
     }
 
     if (sel === 0) {
-        // Has credentials but none ticked — warn, offer to proceed anyway
-        console.log("openNotifyModal — Credentials exist but none selected, prompting user.");
         const proceed = await showAlert({
             title: "No Credentials Selected",
-            message: "You haven't selected any credentials. Do you still want to notify the client? (e.g. the client will provide new credentials themselves)",
+            message: "You haven't selected any credentials. Do you still want to notify the client?",
             type: "info",
             confirmText: "Proceed Anyway",
             showCancel: true
         });
-        console.log("openNotifyModal — User chose to proceed:", proceed);
         if (!proceed) return;
     }
 
