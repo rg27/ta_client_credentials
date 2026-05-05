@@ -60,7 +60,7 @@ const setButtonState = (btn, isBusy, originalText) => {
     if (isBusy) {
         btn.disabled = true;
         btn.style.opacity = "0.5";
-        btn.innerHTML = `<span class="flex items-center justify-center italic">Processing...</span>`;
+        btn.innerHTML = `<span class="flex items-center justify-center italic">Processing...</span>`;                         
     } else {
         btn.disabled = false;
         btn.style.opacity = "1";
@@ -84,17 +84,28 @@ ZOHO.embeddedApp.on("PageLoad", async (entity) => {
         // TARGET THE ENTIRE UI WRAPPER
         const mainWrapper = document.getElementById("main-wrapper");
 
-        if (userProfile === "Administrator") {
+        if (userProfile === "Administrator" || userProfile === "TA-Accountants" || userProfile === "TA-General Manager") {
             // Only load credentials and keep the UI if the user is an Admin
             await loadCredentials(true);
         } else {
             // Completely wipe the UI and replace with a simple message for everyone else
             mainWrapper.innerHTML = `
-                <div class="flex items-center justify-center min-h-[400px] w-full">
-                    <div class="text-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                        <p class="text-slate-400 italic text-sm font-medium">Not Available</p>
+                <div class="flex items-center justify-center min-h-[400px] w-full p-4">
+                    <div class="flex flex-col items-center justify-center space-y-4 max-w-sm w-full p-10 bg-white rounded-2xl shadow-sm border border-slate-100">
+                        <!-- Minimalist Icon -->
+                        <div class="flex items-center justify-center w-16 h-16 bg-slate-50 rounded-full">
+                            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                            </svg>
+                        </div>
+                        
+                        <div class="text-center">
+                            <h3 class="text-slate-600 font-semibold text-lg leading-tight">Information Not Available</h3>
+                            <p class="text-slate-400 text-sm mt-1">This section currently has no data to display.</p>
+                        </div>
                     </div>
-                </div>`;
+                </div>
+                `;
         }
     } catch (error) {
         console.error("Initialization Error:", error);
